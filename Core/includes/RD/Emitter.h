@@ -88,6 +88,13 @@ namespace RD
             listeners.remove(listener);
         }
         
+        /*! @brief Clear all listeners in this emitter. */
+        virtual void clearListeners()
+        {
+            std::lock_guard < std::mutex > lock(mutex);
+            listeners.clear();
+        }
+        
     protected:
         
         /*! @brief Dispatches between 'emitSync' and 'emitAsync' functions regarding
@@ -155,7 +162,7 @@ namespace RD
             
             for ( auto l : listeners )
             {
-                threads.push( std::thread([this, func, l]( Args&&... args ) {
+                threads.push( std::thread([func, l]( Args&&... args ) {
                     
                     auto listener = static_cast < Listener* >( l );
                     std::invoke( func, listener, std::forward < Args >( args )... );

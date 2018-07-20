@@ -14,12 +14,15 @@ namespace RD
     Application::Application()
     {
         shouldTerminate.store( false );
+        
+        defaultCenter = CreateHandle < NotificationCenter >();
+        NotificationCenter::defaultCenter = defaultCenter;
     }
     
     /////////////////////////////////////////////////////////////////////////////////
     Application::~Application()
     {
-        
+        NotificationCenter::defaultCenter.reset();
     }
     
     /////////////////////////////////////////////////////////////////////////////////
@@ -110,26 +113,47 @@ namespace RD
     }
     
     /////////////////////////////////////////////////////////////////////////////////
-    bool Application::loadModule(const std::string &libname, bool required)
+    Handle < Module > Application::loadModule(const std::string &libname, bool required)
     {
         //! @brief Our function to look for in the library.
-        typedef Module* (*CreateModuleFcn) ( void );
+        typedef Handle < Module > (*CreateModuleFcn) ( void );
         
         void* handle = dlopen( libname.data(), RTLD_LAZY );
         bool result = (handle != nullptr);
         
+        if ( !result && required )
+            throw ModuleNotLoadedException( libname );
+        
         CreateModuleFcn fcn = (CreateModuleFcn) dlsym( handle, "CreateModule" );
         result = result && (fcn != nullptr);
         
-        Handle < Module > module( fcn() );
+        if ( !result && required ) {
+            dlclose(handle);
+            throw ModuleNotLoadedException( libname );
+        }
+        if ( !result ) {
+            dlclose(handle);
+            return Handle < Module >();
+        }
+        
+        Handle < Module > module = fcn();
         result = result && module.valid();
         
-        if ( !result && required )
+        if ( !result && required ) {
+            dlclose(handle);
             throw ModuleNotLoadedException( libname );
+        }
         else
             addModule( module );
         
-        return result;
+        return module;
+    }
+    
+    /////////////////////////////////////////////////////////////////////////////////
+    Handle < NotificationCenter > Application::getNotificationCenter()
+    {
+        std::lock_guard < Spinlock > lock(defaultCenterSpinlock);
+        return defaultCenter;
     }
     
     /////////////////////////////////////////////////////////////////////////////////

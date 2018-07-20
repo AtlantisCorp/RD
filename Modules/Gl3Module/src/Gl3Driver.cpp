@@ -49,7 +49,15 @@ namespace Gl3
             throw Gl3InvalidModuleException();
         }
         
-        mod->removeListener((RD::ModuleListener*)this);
+        // NOTE [Concurrency]
+        // When RD::Module terminates, it locks its listener list to emit onModuleWillTerminate.
+        // However, 'mod->removeListener' locks also the listener list. To resolve this, we can
+        // copy the listener list to iterate over the copy and remove the listeners. Or, we can
+        // say that when a module terminates, it will always clear its listeners. Regarding
+        // performance, copying the listener's list is slower than clearing all listeners after
+        // emitting 'onModuleWillTerminate'.
+        // mod->removeListener((RD::ModuleListener*)this);
+        
         module.store(nullptr);
     }
 }

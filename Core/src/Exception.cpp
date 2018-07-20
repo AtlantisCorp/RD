@@ -60,4 +60,11 @@ namespace RD
     {
         
     }
+    
+    /////////////////////////////////////////////////////////////////////////////////
+    AbortRequestedException::AbortRequestedException(const std::string& module, const std::string& function, const std::string& message)
+    : Exception(ErrorCode, "[%s](%s) %s", module.data(), function.data(), message.data())
+    {
+        
+    }
 }

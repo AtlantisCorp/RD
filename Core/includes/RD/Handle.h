@@ -39,7 +39,7 @@ namespace RD
          * @param[in] raw Pointer to handle. Notes that this handle will own
          *      the pointer as it will have only one share.
          */
-        explicit Handle( Handled* raw ) noexcept : instance( raw ) {}
+        explicit Handle( Handled* raw ) noexcept : instance( raw, [](Handled* p){delete p;}, Allocator < Handled >() ) {}
         
         /*! @brief Constructs a handle from a std::shared_ptr.
          *
@@ -145,6 +145,14 @@ namespace RD
         
         /*! @brief Resets the Handle with a null value. */
         void reset() { instance.reset(); }
+        
+        /*! @brief Equality operator. */
+        template < class Derived >
+        bool operator == ( const Handle < Derived >& rhs ) { return rhs.ptr() == ptr(); }
+        
+        /*! @brief Inequality operator. */
+        template < class Derived >
+        bool operator != ( const Handle < Derived >& rhs ) { return !(*this == rhs); }
     };
     
     /*! @brief Utility function to create a handle with the given allocator.

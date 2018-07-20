@@ -115,6 +115,26 @@ namespace RD
          */
         ModuleNotLoadedException( const std::string& libname );
     };
+    
+    /**
+     * @brief Launchd when a module has its abort requested.
+     *
+     * ErrorCode = 4.
+     */
+    class AbortRequestedException : public Exception
+    {
+        //! @brief Error code for this exception.
+        static constexpr uint32_t ErrorCode = 4;
+        
+    public:
+        
+        /*! @brief Default constructor.
+         * @param[in] module Module name.
+         * @param[in] function Function name.
+         * @param[in] message Message for the abort.
+         */
+        AbortRequestedException(const std::string& module, const std::string& function, const std::string& message);
+    };
 }
 
 #endif /* Exception_h */

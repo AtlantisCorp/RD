@@ -7,6 +7,9 @@
 //
 
 #include <RD/Application.h>
+#include <RD/Driver.h>
+
+#include <unistd.h>
 
 class CAppDelegate : public RD::ApplicationDelegate
 {
@@ -49,6 +52,14 @@ int main(int argc, const char * argv[])
         auto appdelegate = cmodule->loadClass < RD::ApplicationDelegate >();
         application.setDelegate( appdelegate );
         
+        char buffer[1024] = {0};
+        getcwd(buffer, 1024);
+        
+        std::cout << "CWD = " << buffer << std::endl;
+        
+        auto gl3module = application.loadModule("../lib/Modules/libGl3Module.dylib");
+        auto gl3driver = gl3module->loadClass < RD::Driver >();
+        
         application.run();
         
         auto b = RD::CreateHandle<CAppDelegate>();
@@ -89,6 +100,18 @@ int main(int argc, const char * argv[])
         return e.code();
     }
     
-    std::cout << "Leaks: " << RD::Details::AllocationTracker::GetTotalLeaksSize() << std::endl;
+    size_t leaks = RD::Details::AllocationTracker::GetTotalLeaksSize();
+    std::cout << "Leaks: " << leaks << std::endl;
+    
+    if (leaks)
+    {
+        auto leakeds = RD::Details::AllocationTracker::GetLeakedAllocations();
+        
+        for (auto leaked : leakeds)
+        {
+            std::cout << "[0X" << leaked.p << "]<" << leaked.type << ">: " << leaked.size << " byte(s)" << std::endl;
+        }
+    }
+    
     return 0;
 }

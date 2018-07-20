@@ -37,6 +37,12 @@ namespace Gl3
     {
         delegate = nullptr;
         emit < RD::ModuleListener >(&RD::ModuleListener::onModuleWillTerminate, this);
+        
+        // NOTE [Design]
+        // To resolve a concurrency problem when emitting 'onModuleWillTerminate' (see Gl3Driver),
+        // Gl3::Module must clear all its listeners after emitting this event.
+        clearListeners();
+        
         return true;
     }
     
@@ -131,10 +137,7 @@ namespace Gl3
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-extern "C" RD::Module* CreateModule( void )
+extern "C" RD::Handle < RD::Module > CreateModule( void )
 {
-    RD::Allocator < Gl3::Module > allocator;
-    Gl3::Module* module = allocator.allocate(1);
-    allocator.construct(module);
-    return module;
+    return RD::CreateHandle < Gl3::Module >();
 }

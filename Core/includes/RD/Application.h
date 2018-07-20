@@ -14,6 +14,8 @@
 #include "Handle.h"
 #include "ApplicationDelegate.h"
 #include "Module.h"
+#include "NotificationCenter.h"
+#include "Spinlock.h"
 
 namespace RD
 {
@@ -52,6 +54,15 @@ namespace RD
         //! @brief Mutex to protect modules from multithread concurrency.
         //! It might happens when registering a module and updating modules.
         std::mutex modulesMutex;
+        
+        //! @brief Stores the default NotificationCenter. Created during initialization of the Application
+        //! object, it is accessible from every corner of the Engine.
+        Handle < NotificationCenter > defaultCenter;
+        
+        //! @brief Spinlock used to access the NotificationCenter. A Spinlock is used because operations
+        //! done on it are minimals, thus a spinlock is faster than a mutex lock (and an atomic operation
+        //! directly on Handle is not supported yet).
+        mutable Spinlock defaultCenterSpinlock;
         
         /*! @brief Default constructor. */
         Application();
@@ -105,9 +116,12 @@ namespace RD
          * @param[in] required Throws an exception if required is true and module could not be
          *      loaded. Useful if you require some module to be loaded.
          *
-         * @return A boolean indicating wether the module could be loaded or not.
+         * @return A Handle to the loaded module or an invalid handle if it could not be loaded.
          */
-        virtual bool loadModule( const std::string& libname, bool required = false );
+        virtual Handle < Module > loadModule( const std::string& libname, bool required = false );
+        
+        /*! @brief Returns the default NotificationCenter. */
+        virtual Handle < NotificationCenter > getNotificationCenter();
         
     protected:
         

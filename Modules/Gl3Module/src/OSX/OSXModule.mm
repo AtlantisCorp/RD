@@ -8,6 +8,12 @@
 #include "Gl3Module.h"
 #include "OSX/OSXModule.h"
 
+#include <RD/NotificationCenter.h>
+#include <RD/Exception.h>
+
+//! @brief Constant to describe Gl3NotificationNibMenuNotFound.
+static const char* kGl3NotificationNibMenuNotFound = "Gl3NotificationNibMenuNotFound";
+
 /////////////////////////////////////////////////////////////////////////////////
 static void SendEmptyEvent( void )
 {
@@ -80,6 +86,43 @@ namespace Gl3
         Gl3ApplicationDelegate* delegate = [[Gl3ApplicationDelegate alloc] init];
         [delegate setModule:module];
         [NSApp setDelegate:delegate];
+        
+        // In case we are unbundled, makes a proper UI activation.
+        
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        
+        // Menu bar setup must go between sharedApplication above and
+        // finishLaunching below, in order to properly emulate the behavior
+        // of NSApplicationMain
+        
+        if ( [[NSBundle mainBundle] pathForResource:@"MainMenu" ofType:@"nib" ] )
+        {
+            [NSApp loadMainMenu];
+        }
+        else
+        {
+            auto answers = RD::NotificationCenter::Notifiate("Gl3Module",
+                                "Gl3OSXStartApplication",
+                                kGl3NotificationNibMenuNotFound,
+                                "'MainMenu.nib' resource not found. One can use this file to create a"
+                                " custom menu for its application.");
+            
+            for (auto answer : answers)
+            {
+                if (answer.shouldAbort())
+                {
+                    RD::NotificationCenter::Notifiate("Gl3Module",
+                                                      "Gl3OSXStartApplication",
+                                                      RD::kNotificationAbortRequested,
+                                                      "Abort has been requested by an observer of NotificationCenter.");
+                    
+                    throw RD::AbortRequestedException("Gl3Module",
+                                                      "Gl3OSXStartApplication",
+                                                      "Abort has been requested by an observer of NotificationCenter.");
+                }
+            }
+        }
+        
         [NSApp run];
         
         module->delegate = delegate;
