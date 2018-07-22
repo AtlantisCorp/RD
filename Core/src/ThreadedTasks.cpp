@@ -24,7 +24,8 @@ namespace RD
     /////////////////////////////////////////////////////////////////////////////////
     void ThreadedTasks::join()
     {
-        while(!threads.empty()) {
+        while(!threads.empty())
+        {
             threads.front().join();
             threads.pop();
         }

@@ -64,15 +64,13 @@ namespace RD
         //! directly on Handle is not supported yet).
         mutable Spinlock defaultCenterSpinlock;
         
+    public:
+        
         /*! @brief Default constructor. */
         Application();
         
-    protected:
-        
         /*! @brief Default destructor. */
         virtual ~Application();
-        
-    public:
         
         /*! @brief Changes the current delegate.
          * @param[in] handle Delegate to use. It may be null, thus invalidating
@@ -122,6 +120,14 @@ namespace RD
         
         /*! @brief Returns the default NotificationCenter. */
         virtual Handle < NotificationCenter > getNotificationCenter();
+        
+        /*! @brief Finds the module which name is exactly the string given.
+         *
+         * @param[in] name Main module name. This is not the complete module name.
+         *
+         * @return Handle to the module if found, or an invalid module.
+         */
+        virtual Handle < Module > findModule(const std::string& name);
         
     protected:
         

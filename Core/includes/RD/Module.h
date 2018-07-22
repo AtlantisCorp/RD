@@ -35,6 +35,12 @@ namespace RD
         
         /*! @brief Called before module is terminated. */
         virtual void onModuleWillTerminate(Module* module) {}
+        
+        /*! @brief Called right before the module update itself. */
+        virtual void onModuleWillUpdate(Module*) {}
+        
+        /*! @brief Called right after the module updated itself. */
+        virtual void onModuleDidUpdate(Module*) {}
     };
     
     /**
@@ -95,7 +101,16 @@ namespace RD
          */
         virtual bool terminate( Application& application, const Clock::time_point& ticks ) = 0;
         
-        /*! @brief Returns the module name. */
+        /*! @brief Returns the module name.
+         *
+         * Module's name is made of two parts, separated by a ':' :
+         * - Main module name, which is how a user can found the module in the Application.
+         * - Specification module name, which is a custom second part that can specify some
+         *   implementations depending on the platform the module was compiled for.
+         *
+         * @return Complete module name, including main and specification names separated
+         * by a ':' character.
+         */
         virtual const std::string name() const { return std::string(); }
         
         /*! @brief Loads a class that might be implemented by this module.

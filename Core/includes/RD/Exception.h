@@ -135,6 +135,17 @@ namespace RD
          */
         AbortRequestedException(const std::string& module, const std::string& function, const std::string& message);
     };
+    
+    /*! @brief Defines a new exception with its error code, and a default constructor. */
+#   define RDDefineException(name, code)                                                        \
+        class name : public RD::Exception { static constexpr std::uint32_t ErrorCode = code ;   \
+            public: name ();                                                                    \
+        }
+    
+    /*! @brief Implements the exception name with its default constructor and given message, which can
+     * be formatted like a call to C \ref printf. */
+#   define RDImplementException(name, ...) \
+        name :: name () : RD::Exception(ErrorCode, __VA_ARGS__) {}
 }
 
 #endif /* Exception_h */

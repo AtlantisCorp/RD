@@ -6,24 +6,112 @@
 //
 
 #include "Gl3Driver.h"
+#include <RD/NotificationCenter.h>
+
+#ifdef Gl3HaveCocoa
+#   include "OSX/Gl3OSXPFAttribs.h"
+
+#endif
 
 namespace Gl3
 {
-    /////////////////////////////////////////////////////////////////////////////////
-    Gl3InvalidModuleException::Gl3InvalidModuleException() 
-        : RD::Exception(ErrorCode, "Gl3: Invalid module (differs from created).")
-    {
-        
-    }
+    RDImplementException(Gl3InvalidModuleException, "Gl3: Invalid module (differs from created).")
     
     /////////////////////////////////////////////////////////////////////////////////
-    Gl3Driver::Gl3Driver(RD::Module* mod, Gl3DriverConfig* config) : module(mod)
+    Gl3Driver::Gl3Driver(RD::Module* mod, RD::DriverConfiguration* config) : module(mod)
     {
         if (!mod) {
             throw Gl3InvalidModuleException();
         }
         
         mod->addListener((RD::ModuleListener*)this);
+        
+#       ifdef Gl3HaveCocoa
+        // Creates a CGLContextObj from the DriverConfiguration object. This context will be used in all
+        // the OpenGL objects created by this driver. To have a multicontext program, you may use more than
+        // one Driver, each for one Context.
+        
+        CGLError error = kCGLNoError;
+        auto attribs = Gl3OSXPixelFormatAttribs(config);
+        
+        if (attribs.empty())
+        {
+            RD::NotifiateAbort("Gl3Module",
+                               "Gl3Driver::Gl3Driver",
+                               "Gl3OSXInvalidPixelFormatAttributesNotification",
+                               "Invalid PixelFormat Attributes.");
+            
+            glPixelFormat = NULL;
+            glContext = NULL;
+            return;
+        }
+        
+        GLint npix;
+        error = CGLChoosePixelFormat(attribs.data(), &glPixelFormat, &npix);
+        
+        if (error != kCGLNoError)
+        {
+            RD::NotifiateAbort("Gl3Module",
+                               "Gl3Driver::Gl3Driver",
+                               "Gl3OSXCGLFailedNotification",
+                               "CGLChoosePixelFormat() failed: %s",
+                               CGLErrorString(error));
+            
+            glPixelFormat = NULL;
+            glContext = NULL;
+            return;
+        }
+        
+        error = CGLCreateContext(glPixelFormat, NULL, &glContext);
+        
+        if (error != kCGLNoError)
+        {
+            CGLReleasePixelFormat(glPixelFormat);
+            
+            RD::NotifiateAbort("Gl3Module",
+                               "Gl3Driver::Gl3Driver",
+                               "Gl3OSXCGLFailedNotification",
+                               "CGLCreateContext() failed: %s",
+                               CGLErrorString(error));
+            
+            glPixelFormat = NULL;
+            glContext = NULL;
+            return;
+        }
+        
+        RD::NotificationCenter::Notifiate("Gl3Module",
+                                          "Gl3Driver::Gl3Driver",
+                                          "Gl3ContextCreatedNotification",
+                                          "OpenGL Context created: %l", (long) glContext);
+        
+        CGLContextObj oldContext = CGLGetCurrentContext();
+        error = CGLSetCurrentContext(glContext);
+        
+        if (error != kCGLNoError)
+        {
+            CGLReleaseContext(glContext);
+            CGLReleasePixelFormat(glPixelFormat);
+            CGLSetCurrentContext(oldContext);
+            
+            RD::NotifiateAbort("Gl3Module",
+                               "Gl3Driver::Gl3Driver",
+                               "Gl3OSXCGLFailedNotification",
+                               "CGLSetCurrentContext() failed: %s.",
+                               CGLErrorString(error));
+            
+            glPixelFormat = NULL;
+            glContext = NULL;
+            return;
+        }
+        
+        std::string glVersion((const char*)glGetString(GL_VERSION));
+        auto nums = RD::explode(glVersion, '.');
+        major = nums.size() ? (GLint)(nums[0][0] - '0') : 0;
+        minor = nums.size() > 1 ? (GLint)(nums[1][0] - '0') : 0;
+        
+        CGLSetCurrentContext(oldContext);
+        
+#       endif
     }
     
     /////////////////////////////////////////////////////////////////////////////////
@@ -34,6 +122,15 @@ namespace Gl3
         if (mod) {
             mod->removeListener((RD::ModuleListener*)this);
         }
+        
+#       ifdef Gl3HaveCocoa
+        
+        if (glContext)
+            CGLReleaseContext(glContext);
+        if (glPixelFormat)
+            CGLReleasePixelFormat(glPixelFormat);
+        
+#       endif
     }
     
     /////////////////////////////////////////////////////////////////////////////////
@@ -45,6 +142,8 @@ namespace Gl3
     /////////////////////////////////////////////////////////////////////////////////
     void Gl3Driver::onModuleWillTerminate(RD::Module *mod)
     {
+        RD::Driver::onModuleWillTerminate(mod);
+        
         if (mod != module.load()) {
             throw Gl3InvalidModuleException();
         }
@@ -59,5 +158,37 @@ namespace Gl3
         // mod->removeListener((RD::ModuleListener*)this);
         
         module.store(nullptr);
+        
+#       ifdef Gl3HaveCocoa
+        
+        if (glContext) {
+            CGLReleaseContext(glContext);
+            glContext = NULL;
+        }
+        if (glPixelFormat) {
+            CGLReleasePixelFormat(glPixelFormat);
+            glPixelFormat = NULL;
+        }
+        
+#       endif
+    }
+    
+    /////////////////////////////////////////////////////////////////////////////////
+    const RD::Version Gl3Driver::version() const
+    {
+        return { major, minor, 0, 0 };
+    }
+    
+    /////////////////////////////////////////////////////////////////////////////////
+    bool Gl3Driver::valid() const
+    {
+#       ifdef Gl3HaveCocoa
+        return (glPixelFormat != NULL)
+            && (glContext != NULL);
+        
+#       else
+        return false;
+        
+#       endif
     }
 }

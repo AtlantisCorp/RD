@@ -25,7 +25,7 @@ namespace Gl3
 #       if defined(Gl3HaveCocoa)
         //! @brief Gl3ApplicationDelegate registered into NSApplication to handle some specific
         //! notifications, like applicationDidHide or applicationDidChangeScreenParameters.
-        Gl3Id delegate;
+        Gl3ID delegate;
         
         //! @brief Declares OSX startup function as a friend to let it initialize the module's
         //! private members.

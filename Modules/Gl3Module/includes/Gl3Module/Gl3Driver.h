@@ -17,26 +17,20 @@ namespace Gl3
     /**
      * @brief Generic configuration of the Gl3Driver object.
      *
-     * User can use this object to pass some initialization informations to Gl3Driver when loading class.
+     * You can give a pointer to an instance of this structure to member RD::DriverConfiguration::extension
+     * to enable Gl3 module custom configuration.
      */
-    class Gl3DriverConfig
+    struct Gl3DriverConfiguration
     {
+        //! @brief OpenGL major version (minimum).
+        short major = 3;
         
+        //! @brief OpenGL minor version (minimum).
+        short minor = 2;
     };
     
-    /**
-     * @brief Thrown when given Module does not correspond to the driver's module.
-     */
-    class Gl3InvalidModuleException : public RD::Exception
-    {
-        //! @brief Error code for this exception.
-        static constexpr uint32_t ErrorCode = 1 << 1;
-        
-    public:
-        
-        /*! @brief Default constructor. */
-        Gl3InvalidModuleException();
-    };
+    /** @brief Thrown when given Module does not correspond to the driver's module. */
+    RDDefineException(Gl3InvalidModuleException, 1 << 1);
     
     /**
      * @brief OpenGL implementation of RD::Driver.
@@ -50,16 +44,31 @@ namespace Gl3
      * by itself. To destroy manually a driver owned object, call either DriverResource::destroy() or
      * Driver::destroy(object).
      */
-    class Gl3Driver : public RD::Driver, public RD::ModuleListener
+    class Gl3Driver : public RD::Driver
     {
         //! @brief Module that created this driver. It is used to compare with the module given in
         //! onModuleWillTerminate, and also to unregister itself at destruction.
         std::atomic < RD::Module* > module;
         
+        //! @brief Detected OpenGL Major version.
+        GLint major;
+        
+        //! @brief Detected OpenGL Minor version.
+        GLint minor;
+        
+#       ifdef Gl3HaveCocoa
+        //! @brief OSX CGL Context.
+        CGLContextObj glContext;
+        
+        //! @brief CGL PixelFormat for the context.
+        CGLPixelFormatObj glPixelFormat;
+        
+#       endif
+        
     public:
         
         /*! @brief Default constructor. */
-        Gl3Driver(RD::Module* mod, Gl3DriverConfig* config);
+        Gl3Driver(RD::Module* mod, RD::DriverConfiguration* config);
         
         /*! @brief Default destructor. */
         ~Gl3Driver();
@@ -76,6 +85,12 @@ namespace Gl3
          *      exception Gl3InvalidModuleException is thrown.
          */
         void onModuleWillTerminate(RD::Module* mod);
+        
+        /*! @brief Returns the driver current version. */
+        const RD::Version version() const;
+        
+        /*! @brief Returns true if the driver was successfully initialized. */
+        bool valid() const;
     };
 }
 

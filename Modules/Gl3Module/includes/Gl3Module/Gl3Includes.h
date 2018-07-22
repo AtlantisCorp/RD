@@ -14,14 +14,17 @@
 
 #ifdef Gl3HaveCocoa
 #   include <OpenGL/OpenGL.h>
+#   include <OpenGL/gl3.h>
 #
 #   define Gl3ContextHandle CGLContextObj
 #
 #   ifdef __OBJC__
 #       include <Cocoa/Cocoa.h>
-#       define Gl3Id id
+#       define Gl3ID id
 #   else
-#       define Gl3Id void*
+#       define Gl3ID void*
 #   endif
 #
 #endif
+
+#include <RD/Global.h>

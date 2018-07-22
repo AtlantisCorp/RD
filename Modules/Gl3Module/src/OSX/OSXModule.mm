@@ -97,33 +97,28 @@ namespace Gl3
         
         if ( [[NSBundle mainBundle] pathForResource:@"MainMenu" ofType:@"nib" ] )
         {
-            [NSApp loadMainMenu];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 100800
+            [[NSBundle mainBundle] loadNibNamed:@"MainMenu"
+                                          owner:NSApp
+                                topLevelObjects:nil];
+#else
+            [[NSBundle mainBundle] loadNibNamed:@"MainMenu" owner:NSApp];
+#endif
         }
         else
         {
-            auto answers = RD::NotificationCenter::Notifiate("Gl3Module",
-                                "Gl3OSXStartApplication",
-                                kGl3NotificationNibMenuNotFound,
-                                "'MainMenu.nib' resource not found. One can use this file to create a"
-                                " custom menu for its application.");
-            
-            for (auto answer : answers)
-            {
-                if (answer.shouldAbort())
-                {
-                    RD::NotificationCenter::Notifiate("Gl3Module",
-                                                      "Gl3OSXStartApplication",
-                                                      RD::kNotificationAbortRequested,
-                                                      "Abort has been requested by an observer of NotificationCenter.");
-                    
-                    throw RD::AbortRequestedException("Gl3Module",
-                                                      "Gl3OSXStartApplication",
-                                                      "Abort has been requested by an observer of NotificationCenter.");
-                }
-            }
+            RD::NotifiateAbort("Gl3Module", "Gl3OSXStartApplication", kGl3NotificationNibMenuNotFound,
+                               "'MainMenu.nib' resource not found. One can use this file to create a custom menu for its application.");
         }
         
         [NSApp run];
+        
+        // Press and Hold prevents some keys from emitting repeated characters
+        
+        NSDictionary* defaults = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO],
+                                  @"ApplePressAndHoldEnabled",
+                                  nil];
+        [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
         
         module->delegate = delegate;
         return true;

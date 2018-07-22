@@ -157,6 +157,31 @@ namespace RD
     }
     
     /////////////////////////////////////////////////////////////////////////////////
+    Handle < Module > Application::findModule(const std::string &name)
+    {
+        std::lock_guard < std::mutex > lock(modulesMutex);
+        
+        auto it = std::find_if(modules.begin(), modules.end(), [name](const Handle < Module >& module) {
+            if (!module.valid())
+                return false;
+            
+            std::string completeName = module->name();
+            std::string moduleName = completeName.substr(0,
+                                        completeName.find_first_of(":"));
+            
+            if (moduleName == name)
+                return true;
+            else
+                return false;
+        });
+        
+        if (it == modules.end())
+            return Handle < Module >();
+        else
+            return *it;
+    }
+    
+    /////////////////////////////////////////////////////////////////////////////////
     void Application::terminate()
     {
         if ( delegate.valid() )

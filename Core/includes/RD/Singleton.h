@@ -10,6 +10,7 @@
 #define Singleton_h
 
 #include "Global.h"
+#include "Handle.h"
 
 namespace RD
 {
@@ -48,14 +49,51 @@ namespace RD
          *
          * If not created, it will create a first instance. Notes that default
          * constructor is always used to create the first instance.
+         *
+         * @note
+         * Function must be used in main thread only. Flag used to call_once is consumed.
          */
         static Derived& Get()
         {
-            //! Static instance for this singleton.
-            static Derived instance;
-            return instance;
+            std::call_once(flag, [](Handle < Derived >& instance){
+                instance = CreateHandle < Derived >();
+            }, instance);
+            
+            return *instance;
         }
+        
+        /*! @brief Returns true if an instance is present. */
+        static bool Valid()
+        {
+            return instance.valid();
+        }
+        
+        /*! @brief Destroys the current instance.
+         *
+         * @note
+         * Flag used to call once construct the instance is not reset, and thus the instance
+         * will never be reachable again.
+         */
+        static void Destroy()
+        {
+            instance.reset();
+        }
+        
+    private:
+        
+        //! @brief A Handle to atomically access the shared instance.
+        //! When getting an instance from multiple threads simultaneously, std::shared_ptr control block
+        //! is thread-safe for reading the shared pointer. However, this instance must be created and
+        //! into main thread.
+        static Handle < Derived > instance;
+        
+        //! @brief Flag to call once to create the Singleton instance.
+        static std::once_flag flag;
     };
+    
+    /////////////////////////////////////////////////////////////////////////////////
+    template < typename Derived > Handle < Derived > Singleton < Derived >::instance;
+    template < typename Derived > std::once_flag Singleton < Derived >::flag;
 }
 
 #endif /* Singleton_h */

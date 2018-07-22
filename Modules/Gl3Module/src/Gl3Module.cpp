@@ -29,7 +29,10 @@ namespace Gl3
     /////////////////////////////////////////////////////////////////////////////////
     bool Module::update(RD::Application& application, const RD::Clock::time_point& ticks)
     {
-        return Gl3OSXUpdateApplication(this);
+        emit < RD::ModuleListener >(&RD::ModuleListener::onModuleWillUpdate, this);
+        bool result = Gl3OSXUpdateApplication(this);
+        emit < RD::ModuleListener >(&RD::ModuleListener::onModuleDidUpdate, this);
+        return result;
     }
     
     /////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +134,7 @@ namespace Gl3
     void* Module::loadHash(size_t hash, void* user)
     {
         if (hash == typeid(RD::Driver).hash_code())
-            return (void*) RD::CreateHandlePtr < RD::Driver, Gl3Driver >(this, (Gl3DriverConfig*)user);
+            return (void*) RD::CreateHandlePtr < RD::Driver, Gl3Driver >(this, (RD::DriverConfiguration*)user);
         return nullptr;
     }
 }

@@ -87,6 +87,14 @@ namespace RD
         //! @brief Declares Application as a friend to let it access this member.
         friend class Application;
     };
+    
+    /*! @brief Notifiates something and throw a AbortRequestedException if one of the answer's shouldAbort()
+     * returns true.
+     */
+    extern std::forward_list < NotificationAnswer > NotifiateAbort(const char* moduleName,
+                                                                   const char* functionName,
+                                                                   const char* notificationName,
+                                                                   const char* format, ...);
 }
 
 #endif /* NotificationCenter_h */
